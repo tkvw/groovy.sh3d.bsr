@@ -1,0 +1,113 @@
+buildscript {
+    repositories {
+        // Use jcenter for resolving dependencies.
+        // You can declare any Maven/Ivy/file repository here.
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.yaml:snakeyaml:1.26'
+        classpath fileTree(dir:"$buildDir/libs",include: "*.jar")
+    }
+}
+plugins {
+    // Apply the groovy plugin to add support for Groovy
+    id 'groovy'
+
+    // Apply the application plugin to add support for building a CLI application.
+    id 'application'
+
+    id "de.undercouch.download" version "4.1.1"
+    id "com.google.osdetector" version "1.6.2"
+
+}
+
+group = ProjectGroup
+version = ProjectVersion
+ext{
+    sweetHomePath = ".downloads/sweethome-${SweetHomeVersion}";
+    sweetHomeJar = "${sweetHomePath}.jar";
+    extractedPath = {p -> "$projectDir/${sweetHomePath}/${p}"};
+    libraryPath = { extractedPath("${osdetector.os}/${'x86_64'.equals(osdetector.arch)?'x64':'i386'}")};
+    instructions = project.properties['config'] ?: "${projectDir}/instructions.yaml"
+}
+
+repositories {
+    // Use jcenter for resolving dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+}
+
+dependencies {
+    // Use the latest Groovy version for building this library
+    implementation 'org.codehaus.groovy:groovy-all:2.5.11'
+    implementation 'org.yaml:snakeyaml:1.26'
+
+    compileOnly files("$projectDir/$sweetHomeJar")
+    compileOnly fileTree(dir:"$projectDir/$sweetHomePath",include: '**/*.jar')
+
+    runtimeOnly files("$projectDir/$sweetHomeJar")
+    runtimeOnly fileTree(dir:"$projectDir/$sweetHomePath",include: '**/*.jar')
+
+    // Use the awesome Spock testing and specification framework
+    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
+}
+
+application {
+    // Define the main class for the application.
+    mainClassName = 'nl.tkvw.sh3d.bsr.App'
+    applicationDefaultJvmArgs = ["-Djava.library.path=${libraryPath()}"]
+}
+task downloadSweetHomeJar(type: Download) {
+    src "https://sourceforge.net/projects/sweethome3d/files/SweetHome3D/SweetHome3D-${SweetHomeVersion}/SweetHome3D-${SweetHomeVersion}.jar/download"
+    dest file("$projectDir/${sweetHomeJar}")
+    overwrite false
+}
+task unpackSweetHomeJar(dependsOn: downloadSweetHomeJar, type: Copy) {
+    from zipTree(downloadSweetHomeJar.dest)
+    into file("$projectDir/${sweetHomePath}")
+}
+task prepare(dependsOn: unpackSweetHomeJar){
+    doLast(){
+        println "Done."
+    }
+}
+
+task runApp(dependsOn: 'compileGroovy',type: JavaExec){
+    main = 'nl.tkvw.sh3d.bsr.App'
+    classpath = sourceSets.main.runtimeClasspath
+    args "--config",instructions
+    jvmArgs = ["-Djava.library.path=${libraryPath()}"]
+}
+
+task generateOverlays(){
+    doLast(){
+        def ri = this.class.classLoader.loadClass('nl.tkvw.sh3d.bsr.config.RenderInstructions')
+        def renderInstructions = ri.metaClass.methods.find {it.static}.invoke(null,instructions as String)
+        renderInstructions.scenarios.each { scenario ->
+            if((scenario.pictures?.size()?:0) > 1){
+                def format = scenario.format?:renderInstructions.format ?:'png';
+                def baseImage = scenario.pictures[0]
+                def rest = scenario.pictures[1..-1]
+
+                rest.each{ image ->
+                    def pb = new ProcessBuilder();
+                    //magick convert alarm_on.png off.png -compose ChangeMask -composite alarm_light.png
+                    pb.directory(new File(renderInstructions.output,scenario.name))
+                    pb.command(
+                        "magick",
+                        "convert",
+                        "${image.name}.${format}",
+                        "${baseImage.name}.${format}",
+                        "-compose",
+                        "ChangeMask",
+                        "-composite",
+                        "${image.name}_over.${format}"
+                    )
+                    def p = pb.start();
+                    def exitCode = p.waitFor();
+                    println "Created overlay ${image.name}_over.${format}"
+                }
+            }
+        }
+    }
+}

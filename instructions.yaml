@@ -1,0 +1,80 @@
+floorplan: C:\Users\dennie\Documents\homeassistant\floorplan\aardenburg2.sh3d
+output: C:\Users\dennie\Documents\homeassistant\floorplan\renders\200
+width: 200
+timezone: Europe/Amsterdam
+timestampFormat: dd-MM-yyyy HH:mm:ss
+# The default timestamp to render images from
+timestamp: 02-09-2020 19:45:00
+format: png
+scenarios:
+  - name: daytime
+    timestamp: 02-09-2020 12:00:00
+    pictures:
+      - name: base
+  - name: dawn
+    pictures:
+      - name: base
+      - name: alarm
+        lights:
+          - name: rgb01_r
+            power: 70
+          - name: rgb02_r
+            power: 70
+          - name: rgb03_r
+            power: 70
+          - name: rgb04_r
+            power: 70
+          - name: rgb05_r
+            power: 70
+          - name: rgb06_r
+            power: 70
+          - name: rgb07_r
+            power: 70
+      - name: livingroom
+        lights:
+          - name: rgb08_w
+            power: 75
+      - name: diningroom
+        lights:
+          - name: rgb09_w
+            power: 75
+          - name: rgb10_w
+            power: 75
+      - name: kitchen
+        lights:
+          - name: rgb07_w
+            power: 75
+  - name: night
+    timestamp: 02-09-2020 23:00:00
+    pictures:
+      - name: base
+      - name: alarm
+        lights:
+          - name: rgb01_r
+            power: 70
+          - name: rgb02_r
+            power: 70
+          - name: rgb03_r
+            power: 70
+          - name: rgb04_r
+            power: 70
+          - name: rgb05_r
+            power: 70
+          - name: rgb06_r
+            power: 70
+          - name: rgb07_r
+            power: 70
+      - name: livingroom
+        lights:
+          - name: rgb08_w
+            power: 75
+      - name: diningroom
+        lights:
+          - name: rgb09_w
+            power: 75
+          - name: rgb10_w
+            power: 75
+      - name: kitchen
+        lights:
+          - name: rgb07_w
+            power: 75
